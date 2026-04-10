@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Lotería PRO</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; background:#0f172a; color:white; padding:20px; }
+    textarea { width:100%; height:120px; margin-bottom:10px; border-radius:10px; padding:10px; }
+    button { padding:10px 20px; margin:5px; border:none; border-radius:10px; cursor:pointer; }
+    .result { margin-top:20px; }
+    canvas { background:white; border-radius:10px; margin-top:20px; }
+  </style>
+</head>
+<body>
+
+<h1>🎯 Lotería PRO</h1>
+<p>Pega resultados (ej: 12,45,33)</p>
+
+<textarea id="input"></textarea><br>
+<button onclick="calcular()">Calcular</button>
+<button onclick="generarJugadas()">Generar Jugadas</button>
+
+<div class="result" id="output"></div>
+<canvas id="grafica"></canvas>
+
+<script>
+let scoresGlobal = [];
+
+function calcular(){
+  const texto = document.getElementById('input').value.trim();
+  const lineas = texto.split("\n");
+
+  let frecuencia = {};
+  let ultimaAparicion = {};
+
+  lineas.forEach((linea, index) => {
+    const nums = linea.split(',').map(n => n.trim());
+    nums.forEach(num => {
+      if(!frecuencia[num]) frecuencia[num] = 0;
+      frecuencia[num]++;
+      ultimaAparicion[num] = index;
+    });
+  });
+
+  let scores = [];
+  const total = lineas.length;
+
+  for(let num in frecuencia){
+    const freq = frecuencia[num];
+    const retraso = total - ultimaAparicion[num];
+    const score = (freq * 0.6) + (retraso * 0.4);
+    scores.push({num, score});
+  }
+
+  scores.sort((a,b)=> b.score - a.score);
+  scoresGlobal = scores;
+
+  mostrarResultados(scores);
+  graficar(scores.slice(0,10));
+}
+
+function mostrarResultados(scores){
+  let html = "<h3>Top 10:</h3><ul>";
+  scores.slice(0,10).forEach(n=>{
+    html += `<li>${n.num} → ${n.score.toFixed(2)}</li>`;
+  });
+  html += "</ul>";
+  document.getElementById('output').innerHTML = html;
+}
+
+function generarJugadas(){
+  if(scoresGlobal.length === 0) return alert("Primero calcula");
+
+  let jugadas = [];
+  let top = scoresGlobal.slice(0,20);
+
+  for(let i=0;i<5;i++){
+    let seleccion = [];
+    while(seleccion.length < 3){
+      let rand = top[Math.floor(Math.random()*top.length)].num;
+      if(!seleccion.includes(rand)) seleccion.push(rand);
+    }
+    jugadas.push(seleccion.join(', '));
+  }
+
+  let html = "<h3>Jugadas sugeridas:</h3><ul>";
+  jugadas.forEach(j=> html += `<li>${j}</li>`);
+  html += "</ul>";
+
+  document.getElementById('output').innerHTML += html;
+}
+
+function graficar(data){
+  const ctx = document.getElementById('grafica');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d=>d.num),
+      datasets: [{ data: data.map(d=>d.score) }]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
